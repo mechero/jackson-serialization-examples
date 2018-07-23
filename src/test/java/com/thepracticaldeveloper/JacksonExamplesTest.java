@@ -3,11 +3,11 @@ package com.thepracticaldeveloper;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
 import com.thepracticaldeveloper.samplebeans.PersonName;
 import com.thepracticaldeveloper.samplebeans.PersonWithBirthdate;
 import org.junit.Test;
@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -51,7 +52,7 @@ public class JacksonExamplesTest {
 
         var personName = "Juan Garcia";
         var json = mapper.writer().writeValueAsString(personName);
-        log.info("We can get use our own serializers (in this case for a String): {}", json);
+        log.info("Using a custom serializer (in this case for a String): {}", json);
         assertThat(json).isEqualTo(
                 "{\"string\":\"Juan Garcia\"}"
         );
@@ -105,9 +106,29 @@ public class JacksonExamplesTest {
         );
         var json = mapper.writer().writeValueAsString(personNames);
         log.info("A list of simple PersonWithBirthdate objects converted to JSON: {}", json);
-        // By default, Jackson serializes LocalDate and LocalDateTime as arrays (e.g. [1980,9,15])
+        // By default, Jackson serializes LocalDate and LocalDateTime exporting the object fields as with any other object.
+        // When using JavaTimeModule, the default formatter is also a bit weird (an array of numbers)
         assertThat(json).isEqualTo(
                 "[{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]},{\"name\":\"Manuel Perez\",\"birthdate\":[1987,7,23]}]"
+        );
+    }
+
+    @Test
+    public void serializeListOfPersonWithBirthdateFormatted() throws JsonProcessingException {
+        var mapper = new ObjectMapper();
+        // We can also use our own module and change the formatter of the LocalDateSerializer to our preferred choice
+        mapper.registerModule(new SimpleModule().addSerializer(new LocalDateSerializer(DateTimeFormatter.ISO_LOCAL_DATE)));
+        var personNames = List.of(
+                new PersonWithBirthdate("Juan Garcia", LocalDate.of(1980, 9, 15)),
+                new PersonWithBirthdate("Manuel Perez", LocalDate.of(1987, 7, 23))
+        );
+        var json = mapper.writer().writeValueAsString(personNames);
+        log.info("A list of simple PersonWithBirthdate objects converted to JSON: {}", json);
+        // By default, Jackson serializes LocalDate and LocalDateTime exporting the object fields as with any other object.
+        // When using JavaTimeModule, the default formatter is also a bit weird (an array of numbers)
+        assertThat(json).isEqualTo(
+                "[{\"name\":\"Juan Garcia\",\"birthdate\":\"1980-09-15\"}," +
+                        "{\"name\":\"Manuel Perez\",\"birthdate\":\"1987-07-23\"}]"
         );
     }
 }
