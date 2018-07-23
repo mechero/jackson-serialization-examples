@@ -1,10 +1,14 @@
 package com.thepracticaldeveloper;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
@@ -27,7 +31,7 @@ public class JacksonExamplesTest {
     private final static Logger log = LoggerFactory.getLogger(JacksonExamplesTest.class);
 
     @Test
-    public void stringDoesNotGetSerializedAsObject() throws JsonProcessingException {
+    public void serializeSimpleString() throws JsonProcessingException {
         var mapper = new ObjectMapper();
         var personName = "Juan Garcia";
         var json = mapper.writer().writeValueAsString(personName);
@@ -36,7 +40,7 @@ public class JacksonExamplesTest {
     }
 
     @Test
-    public void customModuleToSerializeStringAsObject() throws JsonProcessingException {
+    public void serializeStringAsObjectUsingCustomModule() throws JsonProcessingException {
         var mapper = new ObjectMapper();
 
         mapper.registerModule(new SimpleModule().addSerializer(new StdSerializer<String>(String.class) {
@@ -130,5 +134,33 @@ public class JacksonExamplesTest {
                 "[{\"name\":\"Juan Garcia\",\"birthdate\":\"1980-09-15\"}," +
                         "{\"name\":\"Manuel Perez\",\"birthdate\":\"1987-07-23\"}]"
         );
+    }
+
+    /**
+     * Deserialization examples
+     */
+    @Test
+    public void deserializeListOfString () throws IOException {
+        var mapper = new ObjectMapper();
+        var json = "[\"Juan Garcia\",\"Manuel Perez\"]";
+        var list = mapper.readValue(json, List.class);
+        assertThat(list).containsExactlyInAnyOrder("Juan Garcia", "Manuel Perez");
+    }
+
+    @Test
+    public void deserializeListOfStringObjectsUsingCustomModule() throws IOException {
+        var mapper = new ObjectMapper();
+
+        mapper.registerModule(new SimpleModule().addDeserializer(String.class, new StdDeserializer<String>(String.class) {
+            @Override
+            public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+                return ((TextNode)p.getCodec().readTree(p).get("string")).textValue();
+            }
+        }));
+
+        var json = "{\"string\":\"Juan Garcia\"}";
+        var value = mapper.readValue(json, String.class);
+        log.info("Using a custom deserializer to extract a single String: {}", value);
+        assertThat(value).isEqualTo("Juan Garcia");
     }
 }
