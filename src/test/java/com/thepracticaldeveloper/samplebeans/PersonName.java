@@ -1,4 +1,4 @@
-package com.thepracticaldeveloper;
+package com.thepracticaldeveloper.samplebeans;
 
 public class PersonName {
     private final String name;

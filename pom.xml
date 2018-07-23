@@ -58,6 +58,12 @@
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
         </dependency>
+        <!-- This one contains the JSR-310 (new Date API) serializer -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
         <!-- Other dependencies -->
         <dependency>
             <groupId>org.slf4j</groupId>
