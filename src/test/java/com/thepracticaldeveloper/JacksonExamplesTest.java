@@ -34,7 +34,7 @@ public class JacksonExamplesTest {
     public void serializeSimpleString() throws JsonProcessingException {
         var mapper = new ObjectMapper();
         var personName = "Juan Garcia";
-        var json = mapper.writer().writeValueAsString(personName);
+        var json = mapper.writeValueAsString(personName);
         log.info("A simple String does not get converted to a JSON object: {}", json);
         assertThat(json).isEqualTo("\"Juan Garcia\"");
     }
@@ -55,7 +55,7 @@ public class JacksonExamplesTest {
         }));
 
         var personName = "Juan Garcia";
-        var json = mapper.writer().writeValueAsString(personName);
+        var json = mapper.writeValueAsString(personName);
         log.info("Using a custom serializer (in this case for a String): {}", json);
         assertThat(json).isEqualTo(
                 "{\"string\":\"Juan Garcia\"}"
@@ -66,7 +66,7 @@ public class JacksonExamplesTest {
     public void serializeListOfString() throws JsonProcessingException {
         var mapper = new ObjectMapper();
         var personNames = List.of("Juan Garcia", "Manuel Perez");
-        var json = mapper.writer().writeValueAsString(personNames);
+        var json = mapper.writeValueAsString(personNames);
         log.info("A simple list of String objects looks like this: {}", json);
         assertThat(json).isEqualTo(
                 "[\"Juan Garcia\",\"Manuel Perez\"]"
@@ -79,7 +79,7 @@ public class JacksonExamplesTest {
         var personNames = new TreeMap<String, String>();
         personNames.put("name1", "Juan Garcia");
         personNames.put("name2", "Manuel Perez");
-        var json = mapper.writer().writeValueAsString(personNames);
+        var json = mapper.writeValueAsString(personNames);
         log.info("A simple map of <String, String>: {}", json);
         assertThat(json).isEqualTo(
                 "{\"name1\":\"Juan Garcia\",\"name2\":\"Manuel Perez\"}"
@@ -93,7 +93,7 @@ public class JacksonExamplesTest {
                 new PersonName("Juan Garcia"),
                 new PersonName("Manuel Perez")
         );
-        var json = mapper.writer().writeValueAsString(personNames);
+        var json = mapper.writeValueAsString(personNames);
         log.info("A list of simple PersonName objects converted to JSON: {}", json);
         assertThat(json).isEqualTo(
                 "[{\"name\":\"Juan Garcia\"},{\"name\":\"Manuel Perez\"}]"
@@ -108,7 +108,7 @@ public class JacksonExamplesTest {
                 new PersonWithBirthdate("Juan Garcia", LocalDate.of(1980, 9, 15)),
                 new PersonWithBirthdate("Manuel Perez", LocalDate.of(1987, 7, 23))
         );
-        var json = mapper.writer().writeValueAsString(personNames);
+        var json = mapper.writeValueAsString(personNames);
         log.info("A list of simple PersonWithBirthdate objects converted to JSON: {}", json);
         // By default, Jackson serializes LocalDate and LocalDateTime exporting the object fields as with any other object.
         // When using JavaTimeModule, the default formatter is also a bit weird (an array of numbers)
@@ -126,7 +126,7 @@ public class JacksonExamplesTest {
                 new PersonWithBirthdate("Juan Garcia", LocalDate.of(1980, 9, 15)),
                 new PersonWithBirthdate("Manuel Perez", LocalDate.of(1987, 7, 23))
         );
-        var json = mapper.writer().writeValueAsString(personNames);
+        var json = mapper.writeValueAsString(personNames);
         log.info("A list of simple PersonWithBirthdate objects converted to JSON: {}", json);
         // By default, Jackson serializes LocalDate and LocalDateTime exporting the object fields as with any other object.
         // When using JavaTimeModule, the default formatter is also a bit weird (an array of numbers)
@@ -144,7 +144,8 @@ public class JacksonExamplesTest {
         var mapper = new ObjectMapper();
         var json = "[\"Juan Garcia\",\"Manuel Perez\"]";
         var list = mapper.readValue(json, List.class);
-        assertThat(list).containsExactlyInAnyOrder("Juan Garcia", "Manuel Perez");
+        log.info("Plain strings can be deserialized directly: {}", list);
+        assertThat(list).containsExactly("Juan Garcia", "Manuel Perez");
     }
 
     @Test
@@ -158,9 +159,20 @@ public class JacksonExamplesTest {
             }
         }));
 
-        var json = "{\"string\":\"Juan Garcia\"}";
-        var value = mapper.readValue(json, String.class);
-        log.info("Using a custom deserializer to extract a single String: {}", value);
-        assertThat(value).isEqualTo("Juan Garcia");
+        var json = "[{\"string\":\"Juan Garcia\"},{\"string\":\"Manuel Perez\"}]";
+        // In this case we use an array to avoid type erasure. If we provide a list, the parser can't infer
+        // each element's type and won't apply our deserializer.
+        var values = List.of(mapper.readValue(json, String[].class));
+        log.info("Using a custom deserializer to extract specific field values: {}", values);
+        assertThat(values).containsExactly("Juan Garcia", "Manuel Perez");
+    }
+
+    @Test
+    public void deserializeListOfStringObjectsUsingTree() throws IOException {
+        var mapper = new ObjectMapper();
+        var json = "[{\"string\":\"Juan Garcia\"},{\"string\":\"Manuel Perez\"}]";
+        var values = mapper.readTree(json).findValuesAsText("string");
+        log.info("Using a custom deserializer to extract a single String: {}", values);
+        assertThat(values).containsExactly("Juan Garcia", "Manuel Perez");
     }
 }
