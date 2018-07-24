@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -14,6 +15,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
 import com.thepracticaldeveloper.samplebeans.PersonName;
 import com.thepracticaldeveloper.samplebeans.PersonWithBirthdate;
+import com.thepracticaldeveloper.samplebeans.PersonWithBirthdateEC;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.TreeMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 public class JacksonExamplesTest {
 
@@ -174,5 +177,23 @@ public class JacksonExamplesTest {
         var values = mapper.readTree(json).findValuesAsText("string");
         log.info("Using a custom deserializer to extract a single String: {}", values);
         assertThat(values).containsExactly("Juan Garcia", "Manuel Perez");
+    }
+
+    @Test
+    public void deserializeListOfPersonWithBirthdateDefaultDoesNotWork() throws IOException {
+        var mapper = new ObjectMapper();
+        var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
+        var throwable = catchThrowable(() -> mapper.readValue(json, PersonWithBirthdate.class));
+        log.info("Using a deserializer to extract a simple POJO: {}", throwable);
+        assertThat(throwable).isInstanceOf(InvalidDefinitionException.class);
+    }
+
+    @Test
+    public void deserializeListOfPersonWithBirthdateDefault() throws IOException {
+        var mapper = new ObjectMapper();
+        var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
+        var values = mapper.readValue(json, PersonWithBirthdateEC.class);
+        log.info("Using a deserializer to extract a simple POJO: {}", values);
+        assertThat(values).extracting("name").isEqualTo("Juan Garcia");
     }
 }
