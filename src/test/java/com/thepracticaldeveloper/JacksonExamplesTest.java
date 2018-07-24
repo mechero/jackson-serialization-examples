@@ -180,20 +180,22 @@ public class JacksonExamplesTest {
     }
 
     @Test
-    public void deserializeListOfPersonWithBirthdateDefaultDoesNotWork() throws IOException {
+    public void deserializeListOfPersonWithBirthdateDefaultDoesNotWork() {
         var mapper = new ObjectMapper();
         var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
         var throwable = catchThrowable(() -> mapper.readValue(json, PersonWithBirthdate.class));
-        log.info("Using a deserializer to extract a simple POJO: {}", throwable);
+        log.info("Using a deserializer to extract a simple POJO with no empty constructor: {}", throwable.getMessage());
         assertThat(throwable).isInstanceOf(InvalidDefinitionException.class);
     }
 
     @Test
-    public void deserializeListOfPersonWithBirthdateDefault() throws IOException {
+    public void deserializeListOfPersonWithBirthdateEmptyConstructor() throws IOException {
         var mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
         var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
-        var values = mapper.readValue(json, PersonWithBirthdateEC.class);
-        log.info("Using a deserializer to extract a simple POJO: {}", values);
-        assertThat(values).extracting("name").isEqualTo("Juan Garcia");
+        var value = mapper.readValue(json, PersonWithBirthdateEC.class);
+        log.info("Using a deserializer to extract a simple POJO with empty constructor: {}", value);
+        assertThat(value).extracting("name").containsExactly("Juan Garcia");
+        assertThat(value).extracting("birthdate").containsExactly(LocalDate.of(1980, 9, 15));
     }
 }
