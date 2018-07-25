@@ -2,11 +2,11 @@ package com.thepracticaldeveloper.samplebeans;
 
 import java.time.LocalDate;
 
-public class PersonWithBirthdateEC {
+public class PersonEC {
     private String name;
     private LocalDate birthdate;
 
-    public PersonWithBirthdateEC() {
+    public PersonEC() {
     }
 
     public String getName() {

@@ -14,8 +14,9 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
 import com.thepracticaldeveloper.samplebeans.PersonName;
-import com.thepracticaldeveloper.samplebeans.PersonWithBirthdate;
-import com.thepracticaldeveloper.samplebeans.PersonWithBirthdateEC;
+import com.thepracticaldeveloper.samplebeans.Person;
+import com.thepracticaldeveloper.samplebeans.PersonAnnotated;
+import com.thepracticaldeveloper.samplebeans.PersonEC;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,15 +105,15 @@ public class JacksonExamplesTest {
     }
 
     @Test
-    public void serializeListOfPersonWithBirthdate() throws JsonProcessingException {
+    public void serializeListOfPerson() throws JsonProcessingException {
         var mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         var personNames = List.of(
-                new PersonWithBirthdate("Juan Garcia", LocalDate.of(1980, 9, 15)),
-                new PersonWithBirthdate("Manuel Perez", LocalDate.of(1987, 7, 23))
+                new Person("Juan Garcia", LocalDate.of(1980, 9, 15)),
+                new Person("Manuel Perez", LocalDate.of(1987, 7, 23))
         );
         var json = mapper.writeValueAsString(personNames);
-        log.info("A list of simple PersonWithBirthdate objects converted to JSON: {}", json);
+        log.info("A list of simple Person objects converted to JSON: {}", json);
         // By default, Jackson serializes LocalDate and LocalDateTime exporting the object fields as with any other object.
         // When using JavaTimeModule, the default formatter is also a bit weird (an array of numbers)
         assertThat(json).isEqualTo(
@@ -121,16 +122,16 @@ public class JacksonExamplesTest {
     }
 
     @Test
-    public void serializeListOfPersonWithBirthdateFormatted() throws JsonProcessingException {
+    public void serializeListOfPersonFormatted() throws JsonProcessingException {
         var mapper = new ObjectMapper();
         // We can also use our own module and change the formatter of the LocalDateSerializer to our preferred choice
         mapper.registerModule(new SimpleModule().addSerializer(new LocalDateSerializer(DateTimeFormatter.ISO_LOCAL_DATE)));
         var personNames = List.of(
-                new PersonWithBirthdate("Juan Garcia", LocalDate.of(1980, 9, 15)),
-                new PersonWithBirthdate("Manuel Perez", LocalDate.of(1987, 7, 23))
+                new Person("Juan Garcia", LocalDate.of(1980, 9, 15)),
+                new Person("Manuel Perez", LocalDate.of(1987, 7, 23))
         );
         var json = mapper.writeValueAsString(personNames);
-        log.info("A list of simple PersonWithBirthdate objects converted to JSON: {}", json);
+        log.info("A list of simple Person objects converted to JSON: {}", json);
         // By default, Jackson serializes LocalDate and LocalDateTime exporting the object fields as with any other object.
         // When using JavaTimeModule, the default formatter is also a bit weird (an array of numbers)
         assertThat(json).isEqualTo(
@@ -180,21 +181,32 @@ public class JacksonExamplesTest {
     }
 
     @Test
-    public void deserializeListOfPersonWithBirthdateDefaultDoesNotWork() {
+    public void deserializeListOfPersonDoesNotWork() {
         var mapper = new ObjectMapper();
         var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
-        var throwable = catchThrowable(() -> mapper.readValue(json, PersonWithBirthdate.class));
+        var throwable = catchThrowable(() -> mapper.readValue(json, Person.class));
         log.info("Using a deserializer to extract a simple POJO with no empty constructor: {}", throwable.getMessage());
         assertThat(throwable).isInstanceOf(InvalidDefinitionException.class);
     }
 
     @Test
-    public void deserializeListOfPersonWithBirthdateEmptyConstructor() throws IOException {
+    public void deserializeListOfPersonEmptyConstructor() throws IOException {
         var mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
-        var value = mapper.readValue(json, PersonWithBirthdateEC.class);
+        var value = mapper.readValue(json, PersonEC.class);
         log.info("Using a deserializer to extract a simple POJO with empty constructor: {}", value);
+        assertThat(value).extracting("name").containsExactly("Juan Garcia");
+        assertThat(value).extracting("birthdate").containsExactly(LocalDate.of(1980, 9, 15));
+    }
+
+    @Test
+    public void deserializeListOfPersonAnnotated() throws IOException {
+        var mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
+        var value = mapper.readValue(json, PersonAnnotated.class);
+        log.info("Using a deserializer to extract a simple POJO with @JsonCreator: {}", value);
         assertThat(value).extracting("name").containsExactly("Juan Garcia");
         assertThat(value).extracting("birthdate").containsExactly(LocalDate.of(1980, 9, 15));
     }

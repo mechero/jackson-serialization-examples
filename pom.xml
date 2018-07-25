@@ -64,6 +64,12 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>${jackson.version}</version>
         </dependency>
+        <!-- This dependency allows us to use annotations like @JsonCreator, etc. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
         <!-- Other dependencies -->
         <dependency>
             <groupId>org.slf4j</groupId>
