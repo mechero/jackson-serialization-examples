@@ -1,4 +1,4 @@
-package com.thepracticaldeveloper.samplebeans;
+package com.thepracticaldeveloper.objectmapperbasics.samplebeans;
 
 import java.time.LocalDate;
 
@@ -15,5 +15,13 @@ public class PersonEC {
 
     public LocalDate getBirthdate() {
         return birthdate;
+    }
+
+    @Override
+    public String toString() {
+        return "PersonEC{" +
+                "name='" + name + '\'' +
+                ", birthdate=" + birthdate +
+                '}';
     }
 }

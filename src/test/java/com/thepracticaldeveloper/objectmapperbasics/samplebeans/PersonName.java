@@ -1,4 +1,4 @@
-package com.thepracticaldeveloper.samplebeans;
+package com.thepracticaldeveloper.objectmapperbasics.samplebeans;
 
 public class PersonName {
     private final String name;
