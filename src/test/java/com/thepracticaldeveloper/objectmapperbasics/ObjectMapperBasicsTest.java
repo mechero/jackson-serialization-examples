@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.fasterxml.jackson.databind.type.CollectionType;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
 import com.thepracticaldeveloper.objectmapperbasics.samplebeans.*;
@@ -146,7 +146,7 @@ public class ObjectMapperBasicsTest {
      * Deserialization examples
      */
     @Test
-    public void deserializeListOfString () throws IOException {
+    public void deserializeListOfString() throws IOException {
         var mapper = new ObjectMapper();
         var json = "[\"Juan Garcia\",\"Manuel Perez\"]";
         var list = mapper.readValue(json, List.class);
@@ -161,7 +161,7 @@ public class ObjectMapperBasicsTest {
         mapper.registerModule(new SimpleModule().addDeserializer(String.class, new StdDeserializer<String>(String.class) {
             @Override
             public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-                return ((TextNode)p.getCodec().readTree(p).get("string")).textValue();
+                return ((TextNode) p.getCodec().readTree(p).get("string")).textValue();
             }
         }));
 
@@ -198,8 +198,8 @@ public class ObjectMapperBasicsTest {
         var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
         var value = mapper.readValue(json, PersonEC.class);
         log.info("Using a deserializer to extract a simple POJO with empty constructor: {}", value);
-        assertThat(value).extracting("name").containsExactly("Juan Garcia");
-        assertThat(value).extracting("birthdate").containsExactly(LocalDate.of(1980, 9, 15));
+        assertThat(value.getName()).isEqualTo("Juan Garcia");
+        assertThat(value.getBirthdate()).isEqualTo(LocalDate.of(1980, 9, 15));
     }
 
     @Test
@@ -209,8 +209,8 @@ public class ObjectMapperBasicsTest {
         var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15]}";
         var value = mapper.readValue(json, PersonAnnotated.class);
         log.info("Using a deserializer to extract a simple POJO with @JsonCreator: {}", value);
-        assertThat(value).extracting("name").containsExactly("Juan Garcia");
-        assertThat(value).extracting("birthdate").containsExactly(LocalDate.of(1980, 9, 15));
+        assertThat(value.getName()).isEqualTo("Juan Garcia");
+        assertThat(value.getBirthdate()).isEqualTo(LocalDate.of(1980, 9, 15));
     }
 
     @Test
@@ -231,8 +231,8 @@ public class ObjectMapperBasicsTest {
         var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15],\"hobbies\":[\"football\",\"squash\"]}";
         var value = mapper.readValue(json, PersonEC.class);
         log.info("Using a deserializer for backwards compatibility ignoring properties: {}", value);
-        assertThat(value).extracting("name").containsExactly("Juan Garcia");
-        assertThat(value).extracting("birthdate").containsExactly(LocalDate.of(1980, 9, 15));
+        assertThat(value.getName()).isEqualTo("Juan Garcia");
+        assertThat(value.getBirthdate()).isEqualTo(LocalDate.of(1980, 9, 15));
     }
 
     @Test
@@ -242,8 +242,8 @@ public class ObjectMapperBasicsTest {
         var json = "{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15],\"hobbies\":[\"football\",\"squash\"]}";
         var value = mapper.readValue(json, PersonAnnotated.class);
         log.info("Using @JsonIgnoreProperties to ignore unknown fields: {}", value);
-        assertThat(value).extracting("name").containsExactly("Juan Garcia");
-        assertThat(value).extracting("birthdate").containsExactly(LocalDate.of(1980, 9, 15));
+        assertThat(value.getName()).isEqualTo("Juan Garcia");
+        assertThat(value.getBirthdate()).isEqualTo(LocalDate.of(1980, 9, 15));
     }
 
     @Test
@@ -260,10 +260,12 @@ public class ObjectMapperBasicsTest {
     @Test
     public void deserializeListOfPersonV2AsListOfMaps() throws IOException {
         var mapper = new ObjectMapper();
-        var mapCollectionType = mapper.getTypeFactory().constructCollectionType(List.class, Map.class);
         var json = "[{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15],\"hobbies\":[\"football\",\"squash\"]}," +
                 "{\"name\":\"Manuel Perez\",\"birthdate\":\"1987-07-23\"}]";
-        List<Map> value = mapper.readValue(json, mapCollectionType); // Not really needed
+        // This is not needed since it's the default behavior (deserialize to map)
+        var mapCollectionType = mapper.getTypeFactory().constructCollectionType(List.class, Map.class);
+        // We could also use List.class instead of mapCollectionType
+        List<Map> value = mapper.readValue(json, mapCollectionType);
         log.info("Using @JsonIgnoreProperties to ignore unknown fields: {}", value);
         assertThat(value.get(0).get("name")).isEqualTo("Juan Garcia");
         assertThat(value.get(1).get("name")).isEqualTo("Manuel Perez");
@@ -273,7 +275,6 @@ public class ObjectMapperBasicsTest {
     public void deserializeListOfPersonV2AsList() throws IOException {
         var mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
-        mapper.configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, true);
         var mapCollectionType = mapper.getTypeFactory().constructCollectionType(List.class, PersonV2.class);
         var json = "[{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15],\"hobbies\":[\"football\",\"squash\"]}," +
                 "{\"name\":\"Manuel Perez\",\"birthdate\":\"1987-07-23\"}]";
@@ -281,5 +282,22 @@ public class ObjectMapperBasicsTest {
         log.info("Using @JsonIgnoreProperties to ignore unknown fields: {}", value);
         assertThat(value.get(0).getName()).isEqualTo("Juan Garcia");
         assertThat(value.get(1).getName()).isEqualTo("Manuel Perez");
+        assertThat(value.get(1).getHobbies()).isNull();
+    }
+
+    @Test
+    public void deserializeListOfPersonV2AsListUsingOptional() throws IOException {
+        var mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.registerModule(new Jdk8Module());
+        var mapCollectionType = mapper.getTypeFactory().constructCollectionType(List.class, PersonV2Optional.class);
+        var json = "[{\"name\":\"Juan Garcia\",\"birthdate\":[1980,9,15],\"hobbies\":[\"football\",\"squash\"]}," +
+                "{\"name\":\"Manuel Perez\",\"birthdate\":\"1987-07-23\"}]";
+        List<PersonV2Optional> value = mapper.readValue(json, mapCollectionType);
+        log.info("Using @JsonIgnoreProperties to ignore unknown fields: {}", value);
+        assertThat(value.get(0).getHobbies())
+                .isPresent()
+                .hasValueSatisfying(hobbies -> assertThat(hobbies).hasSize(2));
+        assertThat(value.get(1).getHobbies()).isEmpty();
     }
 }
